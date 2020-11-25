@@ -1,84 +1,94 @@
 import os
 import matplotlib.pyplot as plt
-import pandas  as pd
+import pandas as pd
 import numpy as np
 import datetime as dt
-import pyEX as p
-from matplotlib import style
 import pandas_datareader.data as web
-from PIL import Image
-import matplotlib
-from matplotlib.backends.backend_agg import FigureCanvasAgg
-
+import pickle as pkl
 
 class Data:
     '''
     This class is responsible for loading the data for the VIX and Stocks
     '''
 
-    def __init__(self, ticker: str, vol_file: str, read_vol_csv: bool=True):
+    def __init__(self, ticker: str, vol_file: str, read_vol_csv: bool=True, skip_init=False):
         '''
 
         :param ticker: Stock ticker to analyze
         :param vol_file: corresponding volitility file
         '''
 
-        self.ticker:str = ticker
+        if not skip_init:
+            self.ticker:str = ticker
 
-        self.end = dt.datetime.now()
-        # Start Year, Start Month, Start Day
-        self.start = dt.datetime(1990, 1, 1)
+            self.end = dt.datetime.now()
+            # Start Year, Start Month, Start Day
+            self.start = dt.datetime(1990, 1, 1)
 
-        self.ticker_df = self.define_ticker_df(ticker)
-        self.ticker_close_array = np.asarray(self.ticker_df['Adj Close'])
-        self.ticker_time_array = np.asarray(self.ticker_df['Adj Close'].index)
-
-        t_arr = []
-        for i in self.ticker_time_array:
-            t_arr.append(pd.to_datetime(i, format='%Y-%m-%dT'))
-
-        self.ticker_time_array = t_arr
-
-        if read_vol_csv:
-            self.vix_df = self.read_vol_csv('vol_prediction/vix_data_1990.csv')
-            self.vix_close_array = np.asarray(self.vix_df['VIXCLS'])
-            self.vix_time_array = np.asarray(self.vix_df['DATE'])
+            self.ticker_df = self.define_ticker_df(ticker)
+            self.ticker_close_array = np.asarray(self.ticker_df['Adj Close'])
+            self.ticker_time_array = np.asarray(self.ticker_df['Adj Close'].index)
 
             t_arr = []
-            for i in self.vix_time_array:
-                t_arr.append(pd.to_datetime(i,format='%Y-%m-%d'))
-            self.vix_time_array = t_arr
-            self.vix_close_array, self.vix_time_array = self.clean_vol_data()
+            for i in self.ticker_time_array:
+                t_arr.append(pd.to_datetime(i, format='%Y-%m-%dT'))
 
-        else:
-            # VXX, VXZ, VIXM
-            self.vix_df = self.define_ticker_df(vol_file)
-            self.vix_close_array = np.asarray(self.vix_df['Adj Close'])
-            self.vix_time_array = np.asarray(self.vix_df['Adj Close'].index)
-        # plt.figure()
-        # plt.plot(self.vix_time_array, self.vix_close_array)
-        # plt.show()
-        # canvas = plt.get_current_fig_manager().canvas
-        # agg = canvas.switch_backends(FigureCanvasAgg)
-        # agg.draw()
-        # s, (width, height) = agg.print_to_buffer()
-        # # Convert to a NumPy array.
-        # X = np.frombuffer(s, np.uint8).reshape((height, width, 4))
-        # # Pass off to PIL.
-        # im = Image.frombytes("RGBA", (width, height), s)
-        # im.show()
+            self.ticker_time_array = t_arr
 
-        # self.plot_ticker()
+            if read_vol_csv:
+                self.vix_df = self.read_vol_csv('vol_prediction/vix_data_1990.csv')
+                self.vix_close_array = np.asarray(self.vix_df['VIXCLS'])
+                self.vix_time_array = np.asarray(self.vix_df['DATE'])
 
-        print('Loaded Stock Prices:', ticker, vol_file)
+                t_arr = []
+                for i in self.vix_time_array:
+                    t_arr.append(pd.to_datetime(i,format='%Y-%m-%d'))
+                self.vix_time_array = t_arr
+                self.vix_close_array, self.vix_time_array = self.clean_vol_data()
 
-        self.check_length()
-        print("Aligned Data")
+            else:
+                # VXX, VXZ, VIXM
+                self.vix_df = self.define_ticker_df(vol_file)
+                self.vix_close_array = np.asarray(self.vix_df['Adj Close'])
+                self.vix_time_array = np.asarray(self.vix_df['Adj Close'].index)
 
-        self.examples_list = self.make_data_set()
-        print('Created Example Set')
+            # self.plot_ticker()
 
-        self.training_data, self.testing_data = self.get_test_train_split()
+            print('Loaded Stock Prices:', ticker, vol_file)
+
+            self.check_length()
+            print("Aligned Data")
+
+            self.examples_list = self.make_data_set()
+            print('Created Example Set')
+
+            self.training_data, self.testing_data = self.get_test_train_split()
+
+            self.training_vix_data_split, \
+            self.training_spy_data_split, \
+            self.testing_vix_data_split,\
+            self.testing_spy_data_split = self.partition_data()
+
+
+    def partition_data(self):
+        '''
+        Creates an array of testing and training data for easy plotting
+        In other words, we split the data into overlapping examples, but never have all the data in one array
+        :return:
+        '''
+        training_vix_data_split = self.training_data[0][1][:]
+        training_spy_data_split = self.training_data[0][0][:]
+        for i in self.training_data[1:]:
+            training_vix_data_split.append(i[1][-1])
+            training_spy_data_split.append(i[0][-1])
+
+        testing_vix_data_split = self.testing_data[0][1][:]
+        testing_spy_data_split = self.testing_data[0][0][:]
+        for i in self.testing_data[1:]:
+            testing_vix_data_split.append(i[1][-1])
+            testing_spy_data_split.append(i[0][-1])
+
+        return training_vix_data_split, training_spy_data_split, testing_vix_data_split, testing_spy_data_split
 
     def clean_vol_data(self):
         '''
@@ -91,17 +101,18 @@ class Data:
         time_data = []
 
         for ind, vix_val in enumerate(self.vix_close_array):
-            if vix_val == '.':
-                vix_val = self.replace_missing_val(self.vix_close_array, ind)
-                # Pass! --> Leave these values out
-            else:
-                converted_val = np.float(vix_val)
-                vals_list.append(converted_val)
-                time_data.append(self.vix_time_array[ind])
+            converted_val = np.float(vix_val)
+            vals_list.append(converted_val)
+            time_data.append(self.vix_time_array[ind])
 
         return np.asarray(vals_list), np.asarray(time_data)
 
     def check_length(self):
+        '''
+        Since the volitility and price data is coming from two different places, check to make sure
+        the same time is being compared
+        :return:
+        '''
         ticker_len = len(self.ticker_close_array)
         vix_len = len(self.vix_close_array)
 
@@ -128,6 +139,12 @@ class Data:
 
     @staticmethod
     def get_start_index(longer_time_array, shorter_time_array):
+        '''
+        Finds the first data point for which the two datasets are on the same day
+        :param longer_time_array:
+        :param shorter_time_array:
+        :return:
+        '''
         start_index = -1
 
         for ind, time in enumerate(longer_time_array):
@@ -140,6 +157,12 @@ class Data:
 
     @staticmethod
     def align_timeseries(longer_time_array, shorter_time_array, longer_vals_arr, shorter_vals_arr, start_index):
+        '''
+        Since the data is coming from different sources, values may be missing
+        To avoid comparing different dates, we use a bit of dynamic time warping to make sure
+        that we are only including data points if they are in both data sets
+        '''
+
         longer_time = []
         longer_vals = []
 
@@ -167,6 +190,11 @@ class Data:
 
     @staticmethod
     def replace_missing_val(arr, ind):
+        '''
+        The vol data is missing data marked by '.'
+        Replace with linear interpolation
+        '''
+
         val = '.'
         while val == '.':
             val = arr[ind - 1]
@@ -219,6 +247,13 @@ class Data:
         return examples_list
 
     def get_test_train_split(self, n=5):
+        '''
+        Splits data into fifths and creates a testing and training set.
+        Since we have time series data (correlated!) we cannot shuffle the examples
+        :param n:
+        :return:
+        '''
+
         data_points = len(self.examples_list)
         fold_length = int(data_points/n)
         testing_data = self.examples_list[-fold_length:]
@@ -226,3 +261,31 @@ class Data:
 
         return training_data, testing_data
 
+    def save_data(self):
+        '''
+        Saves Data object as pickle
+        '''
+
+        ticker = 'SPY'
+        vol = 'VIX'
+        filename = 'vol_prediction' + '/' + ticker + '_' + vol
+
+        with open(filename, 'wb') as f:
+            pkl.dump(self.__dict__, f)
+
+        print('Saved:', filename)
+
+    def load_data(self):
+        '''
+        Loads Data object from pickle
+        '''
+
+        ticker = 'SPY'
+        vol = 'VIX'
+        filename = 'vol_prediction' + '/' + ticker + '_' + vol
+
+        with open(filename, 'rb') as f:
+            temp_dict = pkl.load(f)
+            self.__dict__.update(temp_dict)
+
+        print('Loaded:', filename)
