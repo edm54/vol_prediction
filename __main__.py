@@ -1,17 +1,46 @@
 from argparse import ArgumentParser
 from data import Data
 import pickle as pkl
-
+from model import Model
 
 arg_parser = ArgumentParser(description='Control the project')
 
-spy_data = Data('SPY', 'VXX')
+arg_parser.add_argument(
+    '-l',
+    help='Load Data',
+    dest='load',
+    action='store_true',
+    default=False,
+    required=False
+)
 
-ticker = 'SPY'
-vol = 'VXX'
-filename = 'vol_prediction' + '/' + ticker+ '_' + vol
+arg_parser.add_argument(
+    '-c',
+    help='Input initial vol to network',
+    dest='combined',
+    action='store_true',
+    default=False,
+    required=False
+)
 
-with open(filename, 'wb') as f:
-    pkl.dump(spy_data, f)
+arg_parser.add_argument(
+    '-t',
+    help='Train network, if false, load',
+    dest='train',
+    action='store_true',
+    default=False,
+    required=False
+)
 
-print('Saved:', filename)
+args = arg_parser.parse_args()
+
+if args.load:
+    spy_data = Data(None, None, skip_init=True)
+    spy_data.load_data()
+
+
+else:
+    spy_data = Data('SPY', 'VXX')
+    spy_data.save_data()
+
+model = Model(spy_data, combined=args.combined, train=args.train)
