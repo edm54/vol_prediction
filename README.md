@@ -22,8 +22,9 @@ Note that while predicting stock movement is quite difficult as it is almost ent
 
 ## How to use this framework
 To run the code, you must first download volitility data from [here](https://fred.stlouisfed.org/series/VIXCLS). I have also pushed a data file for the SPY to avoid having to download any data. The FRED has a several volitility data sets for stocks (AAPL, AMZN, IBM), indexes (Nasdaq, S&P 500, Russel) or even commodities (gold and oil). 
-The code can be run from the command line with the following command:
-`python3  -m vol_prediction -l -s SPY -t`
+The code can be run with the following arguments: `-l -s SPY -t`
+
+For some reason I had trouble with saving and loading the model when using Ubuntu and running the code as a module from the command line.
 
 This command will load `-l` the SPY `-s` data file and will train `-t` an LSTM to predict the IV change over 10 days. 
 Other stocks can be used with the `-s` flag, but you must input the path to the volatility file using the `-v` flag. 
