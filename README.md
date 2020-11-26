@@ -7,7 +7,7 @@ The IV is typically predicted based on the price of options 30 days from expirat
 For example, Figure 1 shows a plot of historical volatility and the price of the S\&P 500. As you can see, they are partially inversely correlated. 
 
 ![Figure 1](http://www.cboe.com/publish/micrositecharts/VIX_SP500_Index.jpg)
-Figure 1
+
 
 This project uses historical data for the IV for the S&P 500 (represented as the price of the VIX) and historical price data. The IV data will be taken from the [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/VIXCLS). Alternatively a volitility ETF can be used with the pyEX API (such as VXX). 
 
@@ -32,6 +32,7 @@ The `-c` flag will use the combined model, which inputs the initial vol into the
 
 ## Results
 The LSTM model did much better on the SPY data than the data for Apple or Amazon. 
-
-
- 
+Below are the results for the SPY (S&P 500). 
+![Figure 2]( https://github.com/edm54/vol_prediction/blob/main/Predicted_vol_orig.png)
+To show the results in better detail, I have zoomed in, shown below.
+![Figure 3](https://github.com/edm54/vol_prediction/blob/main/Predicted_vol_orig_400_600.png)
