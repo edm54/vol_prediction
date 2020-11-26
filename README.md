@@ -36,3 +36,11 @@ Below are the results for the SPY (S&P 500).
 ![Figure 2]( https://github.com/edm54/vol_prediction/blob/main/Predicted_vol_orig.png)
 To show the results in better detail, I have zoomed in, shown below.
 ![Figure 3](https://github.com/edm54/vol_prediction/blob/main/Predicted_vol_orig_400_600.png)
+
+As you can see, not too bad. However, these plots do not explictly show what the network is predicting, but rather show the predicted IV change plus the initial IV, which makes the results look better than they are. 
+Below I have shown the results of the network, comparing the predicted change vs the actual change. As you can see, the network still does a decent job, but tends to underestimate the large moves. 
+![Figure 4]( https://github.com/edm54/vol_prediction/blob/main/delta%20v.png)
+
+I have zoomed in on the same region as above, which is not too bad. In fact, the predictions are correlated to the targets with a correlation coefficient of .65. 
+![Figure 5]( https://github.com/edm54/vol_prediction/blob/main/delta_400_600.png)
+
