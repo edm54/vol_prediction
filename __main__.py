@@ -32,15 +32,30 @@ arg_parser.add_argument(
     required=False
 )
 
+arg_parser.add_argument(
+    '-s',
+    help='The ticker symbol for the underlying',
+    dest='ticker',
+    type=str,
+    default="SPY"
+)
+
+arg_parser.add_argument(
+    '-v',
+    help='Path to volatility file',
+    dest='vol_file',
+    type=str,
+    default='vol_prediction/vix_data_1990.csv'
+)
+
 args = arg_parser.parse_args()
 
 if args.load:
-    spy_data = Data(None, None, skip_init=True)
+    spy_data = Data(args.ticker, args.vol_file, skip_init=True)
     spy_data.load_data()
 
-
 else:
-    spy_data = Data('SPY', 'VXX')
+    spy_data = Data(args.ticker, args.vol_file)
     spy_data.save_data()
 
-model = Model(spy_data, combined=args.combined, train=args.train)
+model = Model(spy_data, combined=args.combined, train=args.train, ticker=args.ticker)

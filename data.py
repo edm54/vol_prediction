@@ -17,11 +17,13 @@ class Data:
         :param ticker: Stock ticker to analyze
         :param vol_file: corresponding volitility file
         '''
+        self.ticker: str = ticker
+        self.vol_file: str = vol_file
 
         if not skip_init:
-            self.ticker:str = ticker
 
             self.end = dt.datetime.now()
+
             # Start Year, Start Month, Start Day
             self.start = dt.datetime(1990, 1, 1)
 
@@ -36,8 +38,15 @@ class Data:
             self.ticker_time_array = t_arr
 
             if read_vol_csv:
-                self.vix_df = self.read_vol_csv('vol_prediction/vix_data_1990.csv')
-                self.vix_close_array = np.asarray(self.vix_df['VIXCLS'])
+                self.vix_df = self.read_vol_csv(vol_file)
+
+                close_name = ''
+                for col in self.vix_df.columns:
+                    if col != 'DATE':
+                        close_name = col
+                print(close_name)
+
+                self.vix_close_array = np.asarray(self.vix_df[close_name])
                 self.vix_time_array = np.asarray(self.vix_df['DATE'])
 
                 t_arr = []
@@ -101,9 +110,10 @@ class Data:
         time_data = []
 
         for ind, vix_val in enumerate(self.vix_close_array):
-            converted_val = np.float(vix_val)
-            vals_list.append(converted_val)
-            time_data.append(self.vix_time_array[ind])
+            if vix_val != '.':
+                converted_val = np.float(vix_val)
+                vals_list.append(converted_val)
+                time_data.append(self.vix_time_array[ind])
 
         return np.asarray(vals_list), np.asarray(time_data)
 
@@ -171,20 +181,20 @@ class Data:
 
         ind_diff = 0
         for ind, time in enumerate(longer_time_array[start_index:]):
-
-            # One of the dates is missing so we need to shift indexes
-            if time != shorter_time_array[ind + ind_diff]:
-                print(time, shorter_time_array[ind + ind_diff])
-                if time > shorter_time_array[ind + ind_diff]:
-                    ind_diff += 1
+            if len(shorter_time_array) > ind + ind_diff:
+                # One of the dates is missing so we need to shift indexes
+                if time != shorter_time_array[ind + ind_diff]:
+                    print(time, shorter_time_array[ind + ind_diff])
+                    if time > shorter_time_array[ind + ind_diff]:
+                        ind_diff += 1
+                    else:
+                        ind_diff -= 1
                 else:
-                    ind_diff -= 1
-            else:
-                shorter_time.append(shorter_time_array[ind + ind_diff])
-                longer_time.append(time)
+                    shorter_time.append(shorter_time_array[ind + ind_diff])
+                    longer_time.append(time)
 
-                longer_vals.append(longer_vals_arr[ind + start_index])
-                shorter_vals.append(shorter_vals_arr[ind + ind_diff])
+                    longer_vals.append(longer_vals_arr[ind + start_index])
+                    shorter_vals.append(shorter_vals_arr[ind + ind_diff])
 
         return longer_time, shorter_time, longer_vals, shorter_vals
 
@@ -266,9 +276,8 @@ class Data:
         Saves Data object as pickle
         '''
 
-        ticker = 'SPY'
-        vol = 'VIX'
-        filename = 'vol_prediction' + '/' + ticker + '_' + vol
+        ticker = self.ticker
+        filename = 'vol_prediction' + '/' + ticker
 
         with open(filename, 'wb') as f:
             pkl.dump(self.__dict__, f)
@@ -280,9 +289,8 @@ class Data:
         Loads Data object from pickle
         '''
 
-        ticker = 'SPY'
-        vol = 'VIX'
-        filename = 'vol_prediction' + '/' + ticker + '_' + vol
+        ticker = self.ticker
+        filename = 'vol_prediction' + '/' + ticker
 
         with open(filename, 'rb') as f:
             temp_dict = pkl.load(f)

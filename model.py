@@ -8,9 +8,14 @@ import matplotlib.pyplot as plt
 
 class Model:
 
-    def __init__(self, data: Data, combined=False, train=True):
+    def __init__(self, data: Data, combined=False, train=True, ticker="SPY"):
         self.data = data
+        self.epochs = 250 # May cause overfitting if too high
+
         self.vix_var, self.vix_mean = self.get_vix_params()
+        self.ticker = ticker
+        self.combined = combined
+        self.model_name = self.get_model_name()
 
         #  Standardize each sample --> this makes the most sense
         self.training_input, self.testing_input = self.get_standardized_samples()
@@ -25,14 +30,28 @@ class Model:
             else:
                 self.model = self.define_lstm_model()
                 self.train_model()
+        self.load_model()
         if combined:
-            self.load_model('combined_lstm_model')
             self.eval_combined_model()
         else:
-            self.load_model()
             self.eval_model()
 
+    def get_model_name(self):
+        '''
+        Finds the model name using the ticker and whether it is the combined model
+        '''
+
+        if self.combined:
+            filename = self.ticker + '_' + 'combined_lstm_model'
+        else:
+            filename = self.ticker + '_' + 'lstm_model'
+        return filename
+
     def get_vix_params(self):
+        '''
+        Finds average and variance of the IV data
+        :return:
+        '''
         vix_data = self.data.training_vix_data_split
 
         vix_var = variance(vix_data)
@@ -46,6 +65,11 @@ class Model:
         return training_input_vol, testing_input_vol
 
     def _get_all_vol_input(self, vix_list):
+        '''
+        Creates the set of initial IV values for the combined model
+        :param vix_list: list of samples where sample = Tuple([price],[IV])
+        :return: IV[0] for each sample
+        '''
         input_vol = []
         for sample in vix_list:
             initial_vol = sample[1][0]
@@ -55,12 +79,22 @@ class Model:
         return input_vol
 
     def standardize_vix_sample(self, vix_val, epsilon=1e-8):
+        '''
+        Standardize vix values, assumes mean and var already found
+        '''
         return (vix_val - self.vix_mean) / sqrt(self.vix_var + epsilon)
 
     def unstandardize_vix_sample(self, prediction, epsilon=1e-8):
+        '''
+        Convert a standardized output back to an unstandardized output
+        '''
         return prediction * sqrt(self.vix_var + epsilon) + - self.vix_mean
 
     def eval_model(self):
+        '''
+        Evalutes the standard LSTM model
+        Plots predicted IV change and IV
+        '''
         output_arr = []
         actual_arr = []
 
@@ -69,41 +103,36 @@ class Model:
 
         start_ind = 1
         end_ind = 10
+        correct_sign = 0
         for ind, sample in enumerate(self.testing_input):
             reshaped_sample = sample.reshape(1, 1, 10)
             prediction = self.model.predict(reshaped_sample)[0][0]
 
             output_arr.append(prediction[0])
-            # actual_arr.append(actual)
             actual_arr.append(self.testing_output[ind])
 
-            # vix_actual.append(self.data.testing_vix_data_split[start_ind] + actual)
+            if np.sign(self.testing_output[ind]) == np.sign(prediction[0]):
+                correct_sign = correct_sign + 1
+
             vix_actual.append(self.data.testing_vix_data_split[start_ind] + self.testing_output[ind])
             vix_predicted.append(self.data.testing_vix_data_split[start_ind] + prediction[0])
 
             start_ind += 1
             end_ind += 1
 
-        print('DELTA:', np.corrcoef(output_arr, actual_arr))
-        print('TOTAL:', np.corrcoef(vix_predicted, vix_actual))
+        print('Correlation with IV change:', np.corrcoef(output_arr, actual_arr))
+        print('Correlation with IV:', np.corrcoef(vix_predicted, vix_actual))
+        print('Sign Percentage:', correct_sign/len(actual_arr))
 
-        plt.figure()
-        plt.plot(output_arr, label='Output')
-        plt.plot(actual_arr, label='Actual')
-        plt.ylabel('Predicted Change in Volatility', fontsize=18)
-        plt.title('Predicted vs Actual Change in Volatility', fontsize=18)
-        plt.legend()
-        plt.show()
-
-        plt.figure()
-        plt.plot(vix_predicted, label='Output')
-        plt.plot(vix_actual, label='Actual')
-        plt.ylabel('Predicted Value of Volatility', fontsize=18)
-        plt.title('Predicted vs Actual Volatility', fontsize=18)
-        plt.legend()
-        plt.show()
+        self.plot_change_in_vol(output_arr, actual_arr, combined=False)
+        self.plot_vol(vix_predicted, vix_actual, combined=False)
 
     def eval_combined_model(self):
+        '''
+        Evalutes the combined LSTM model (with additional non-sequential data)
+        Plots predicted IV change and IV
+        '''
+
         output_arr = []
         actual_arr = []
 
@@ -112,6 +141,7 @@ class Model:
 
         start_ind = 1
         end_ind = 10
+        correct_sign = 0
         for ind, sample in enumerate(self.testing_input):
             reshaped_sample = sample.reshape(1, 1, 10)
 
@@ -124,28 +154,59 @@ class Model:
             output_arr.append(prediction[0])
             actual_arr.append(self.testing_output[ind])
 
+            if np.sign(self.testing_output[ind]) == np.sign(prediction[0]):
+                correct_sign = correct_sign + 1
+
             vix_actual.append(self.data.testing_vix_data_split[start_ind] + self.testing_output[ind])
             vix_predicted.append(self.data.testing_vix_data_split[start_ind] + prediction[0])
 
             start_ind += 1
             end_ind += 1
 
-        print('DELTA:', np.corrcoef(output_arr, actual_arr))
-        print('TOTAL:', np.corrcoef(vix_predicted, vix_actual))
+        print('Correlation with IV change:', np.corrcoef(output_arr, actual_arr))
+        print('Correlation with IV:', np.corrcoef(vix_predicted, vix_actual))
+        print('Sign Percentage:', correct_sign / len(actual_arr))
 
         plt.figure()
         plt.plot(output_arr, label='Output')
         plt.plot(actual_arr, label='Actual')
         plt.ylabel('Predicted Change in Volatility', fontsize=18)
-        plt.title('Predicted vs Actual Change in Volatility, Combined', fontsize=18)
+        plt.title('Predicted vs Actual Change in Volatility, Combined '+ self.ticker, fontsize=18)
         plt.legend()
         plt.show()
 
+        self.plot_change_in_vol(output_arr, actual_arr, combined=True)
+        self.plot_vol(vix_predicted, vix_actual, combined=True)
+
+    def plot_change_in_vol(self, output_arr, actual_arr, combined=False):
+        '''
+        Plots predicted IV change vs actual IV change
+        '''
+        plt.figure()
+        plt.plot(output_arr, label='Output')
+        plt.plot(actual_arr, label='Actual')
+        plt.ylabel('Predicted Change in Volatility', fontsize=18)
+        if combined:
+            plt.title('Predicted vs Actual Change in Volatility, Combined ' + self.ticker, fontsize=18)
+        else:
+            plt.title('Predicted vs Actual Change in Volatility ' + self.ticker, fontsize=18)
+
+        plt.legend()
+        plt.show()
+
+
+    def plot_vol(self, vix_predicted, vix_actual, combined=False):
+        '''
+        Plots predicted IV vs actual IV
+        '''
         plt.figure()
         plt.plot(vix_predicted, label='Output')
         plt.plot(vix_actual, label='Actual')
         plt.ylabel('Predicted Value of Volatility', fontsize=18)
-        plt.title('Predicted vs Actual Volatility, Combined', fontsize=18)
+        if combined:
+            plt.title('Predicted vs Actual Volatility, Combined ' + self.ticker, fontsize=18)
+        else:
+            plt.title('Predicted vs Actual Volatility ' + self.ticker, fontsize=18)
         plt.legend()
         plt.show()
 
@@ -198,23 +259,36 @@ class Model:
         print(lstm_model.summary())
         return lstm_model
 
-    def load_model(self, name='lstm_model'):
-        self.model = tf.keras.models.load_model(name)
-        print('Loaded model:', name)
+    def load_model(self):
+        '''
+        Loads saved model
+        :return:
+        '''
+        self.model = tf.keras.models.load_model(self.model_name)
+        print('Loaded model:', self.model_name)
 
     def train_model(self):
+        '''
+        Train standard LSTM model
+        :return:
+        '''
         reshaped_input = np.asarray(self.training_input).reshape(len(self.training_input), 1, 10)
-        self.model.fit(reshaped_input,  np.asarray(self.training_output), epochs=50, validation_split=0.2, batch_size=5)
-        self.model.save('lstm_model')
+        self.model.fit(reshaped_input,  np.asarray(self.training_output), epochs=self.epochs, validation_split=0.2, batch_size=5)
+        self.model.save(self.model_name)
+        print("Saved:", self.model_name)
 
     def train_combined_model(self):
+        '''
+        Trains the LSTM model that takes the initial volatility as an input
+        :return:
+        '''
         reshaped_lstm_input = np.asarray(self.training_input).reshape(len(self.training_input), 1, 10)
         reshaped_vol_input = np.asarray(self.training_input_vol).reshape(len(self.training_input_vol), 1, 1)
 
-        self.model.fit({"vol_input": reshaped_vol_input, "lstm_input": reshaped_lstm_input}, np.asarray(self.training_output), epochs=50, validation_split=0.2, batch_size=5)
-        self.model.save('combined_lstm_model')
+        self.model.fit({"vol_input": reshaped_vol_input, "lstm_input": reshaped_lstm_input}, np.asarray(self.training_output), epochs=self.epochs, validation_split=0.2, batch_size=5)
+        self.model.save(self.model_name)
+        print("Saved:", self.model_name)
 
-    # todo: preprocess this too?
     def target_data_delta(self):
         '''
         Defines target output as the change in vol over the given time period
@@ -231,6 +305,10 @@ class Model:
         return training_targets, testing_targets
 
     def target_data_all(self):
+        '''
+        Returns training data consisting of the list of 10 IV values
+        :return:
+        '''
         training_targets = []
         for sample in self.data.training_data:
             training_targets.append(sample[1])
@@ -242,6 +320,10 @@ class Model:
         return training_targets, testing_targets
 
     def get_standardized_samples(self):
+        '''
+        Standardizes each sample individually
+        :return:
+        '''
         training_samples = []
         for sample in self.data.training_data:
             std_sample = self._standardize_sample(sample[0])
