@@ -1,5 +1,5 @@
 import tensorflow as tf
-from data import Data
+from .data import Data
 import numpy as np
 import logging
 logging.getLogger('tensorflow').disabled = True

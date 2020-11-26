@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
-from data import Data
+from .data import Data
 import pickle as pkl
-from model import Model
+from .model import Model
 
 arg_parser = ArgumentParser(description='Control the project')
 
