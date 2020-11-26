@@ -9,7 +9,7 @@ For example, Figure 1 shows a plot of historical volatility and the price of the
 ![Figure 1](http://www.cboe.com/publish/micrositecharts/VIX_SP500_Index.jpg)
 Figure 1
 
-This project uses historical data for the IV for the S&P 500 (represented as the price of the VIX) and historical price data. The IV data will be taken from the Federal Reserve Economic Data (FRED) [website](https://fred.stlouisfed.org/series/VIXCLS). Alternatively a volitility ETF can be used with the pyEX API (such as VXX). 
+This project uses historical data for the IV for the S&P 500 (represented as the price of the VIX) and historical price data. The IV data will be taken from the [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/VIXCLS). Alternatively a volitility ETF can be used with the pyEX API (such as VXX). 
 
 This website also has values of IV for some stocks like Apple and Amazon, and commodities such as crude oil and gold. However, there is historical data from 1990 to current day, so there is plenty of data for the S&P 500. However, if it is not enough to train the model, I may resort to using some of the other data too. There are several APIs available for getting historical stock data in Python that I will use to get historical S&P 500 price data.
 
@@ -21,4 +21,17 @@ Since the input to the model will be a series of price data, my first approach w
 Note that while predicting stock movement is quite difficult as it is almost entirely random, volatility is known to be mean reverting and therefore may be able to be modeled. One difficulty I see is that change in IV also depends on the value of IV at the beginning of the period. IV will fall faster when it is at highly elevated levels. I will likely try to find a way to work that into the model. One approach would be to use an Seq2Seq model when the output sequence is the sequence of IV values, and the input to the decoder could be the starting value of IV. 
 
 ## How to use this framework
-To run the code, you must first download volitility data from [website](https://fred.stlouisfed.org/series/VIXCLS).
+To run the code, you must first download volitility data from [here](https://fred.stlouisfed.org/series/VIXCLS). I have also pushed a data file for the SPY to avoid having to download any data. The FRED has a several volitility data sets for stocks (AAPL, AMZN, IBM), indexes (Nasdaq, S&P 500, Russel) or even commodities (gold and oil). 
+The code can be run from the command line with the following command:
+`python3  -m vol_prediction -l -s SPY -t`
+
+This command will load `-l` the SPY `-s` data file and will train `-t` an LSTM to predict the IV change over 10 days. 
+Other stocks can be used with the `-s` flag, but you must input the path to the volatility file using the `-v` flag. 
+The `-c` flag will use the combined model, which inputs the initial vol into the network in a concatenation layer after the LSTM. Note this approach did not actually perform better than the standard LSTM.
+
+
+## Results
+The LSTM model did much better on the SPY data than the data for Apple or Amazon. 
+
+
+ 
