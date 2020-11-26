@@ -9,7 +9,7 @@ For example, Figure 1 shows a plot of historical volatility and the price of the
 ![Figure 1](http://www.cboe.com/publish/micrositecharts/VIX_SP500_Index.jpg)
 Figure 1
 
-This project uses historical data for the IV for the S&P 500 (represented as the price of the VIX) and historical price data. The IV data will be taken from the Federal Reserve Economic Data (FRED) [website] (https://fred.stlouisfed.org/series/VIXCLS). Alternatively a volitility ETF can be used with the pyEX API (such as VXX). 
+This project uses historical data for the IV for the S&P 500 (represented as the price of the VIX) and historical price data. The IV data will be taken from the Federal Reserve Economic Data (FRED) [website](https://fred.stlouisfed.org/series/VIXCLS). Alternatively a volitility ETF can be used with the pyEX API (such as VXX). 
 
 This website also has values of IV for some stocks like Apple and Amazon, and commodities such as crude oil and gold. However, there is historical data from 1990 to current day, so there is plenty of data for the S&P 500. However, if it is not enough to train the model, I may resort to using some of the other data too. There are several APIs available for getting historical stock data in Python that I will use to get historical S&P 500 price data.
 
@@ -19,3 +19,6 @@ I will look to predict the change in the IV or VIX using two weeks worth of data
 Since the input to the model will be a series of price data, my first approach will be to use an RNN, likely an LSTM model. Depending on the success of the RNN, I may look to use a CNN with 1-dimensional convolution operations to see how this approach performs. 
 
 Note that while predicting stock movement is quite difficult as it is almost entirely random, volatility is known to be mean reverting and therefore may be able to be modeled. One difficulty I see is that change in IV also depends on the value of IV at the beginning of the period. IV will fall faster when it is at highly elevated levels. I will likely try to find a way to work that into the model. One approach would be to use an Seq2Seq model when the output sequence is the sequence of IV values, and the input to the decoder could be the starting value of IV. 
+
+## How to use this framework
+To run the code, you must first download volitility data from [website](https://fred.stlouisfed.org/series/VIXCLS).
