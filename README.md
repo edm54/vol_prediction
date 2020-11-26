@@ -32,7 +32,8 @@ The `-c` flag will use the combined model, which inputs the initial vol into the
 
 ## Results
 The LSTM model did much better on the SPY data than the data for Apple or Amazon. 
-Below are the results for the SPY (S&P 500). 
+Below are the results for the SPY (S&P 500). The predicted IV has a .96 correlation to the actual IV, which is quite good. This is because the IV change is often small, so most of the time the error in IV is small (even if the error in IV change is large) 
+
 ![Figure 2]( https://github.com/edm54/vol_prediction/blob/main/Predicted_vol_orig.png)
 To show the results in better detail, I have zoomed in, shown below.
 ![Figure 3](https://github.com/edm54/vol_prediction/blob/main/Predicted_vol_orig_400_600.png)

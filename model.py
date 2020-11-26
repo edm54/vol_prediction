@@ -1,9 +1,10 @@
 import tensorflow as tf
-from .data import Data
+from data import Data
 import numpy as np
 import logging
 logging.getLogger('tensorflow').disabled = True
-from statistics import mean, variance, sqrt
+from statistics import mean, variance
+from math import sqrt
 import matplotlib.pyplot as plt
 
 class Model:
