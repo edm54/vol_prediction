@@ -6,7 +6,7 @@ The IV is typically predicted based on the price of options 30 days from expirat
 
 For example, Figure 1 shows a plot of historical volatility and the price of the S\&P 500. As you can see, they are partially inversely correlated. 
 
-![Figure 1](http://www.cboe.com/publish/micrositecharts/VIX_SP500_Index.jpg)
+![Figure 1](https://github.com/edm54/vol_prediction/blob/main/vol_spy.png)
 
 
 This project uses historical data for the IV for the S&P 500 (represented as the price of the VIX) and historical price data. The IV data will be taken from the [Federal Reserve Economic Data (FRED)](https://fred.stlouisfed.org/series/VIXCLS). Alternatively a volitility ETF can be used with the pyEX API (such as VXX). 
